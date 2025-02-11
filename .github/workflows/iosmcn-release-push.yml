@@ -16,7 +16,7 @@ jobs:
       DOCKER_REGISTRY: ghcr.io/
       DOCKER_REPOSITORY: aryan-techphosis/bess/
       RELEASE_VERSION: 0.0.2
-      STABLE_TAG: 240925
+      STABLE_TAG: 250211
       IMAGE_NAME: bess_build
 
     steps:
