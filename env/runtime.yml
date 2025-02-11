@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2016-2017, Nefeli Networks, Inc.
+# SPDX-FileCopyrightText: 2017, The Regents of the University of California.
+# SPDX-FileCopyrightText: 2024, Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+- hosts: all
+  tags: runtime
+  tasks:
+    - name: Install prerequisite packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - python
+          - python-pip
+          - libgraph-easy-perl
+          - tcpdump
+        update_cache: yes
+      become: true
+
+    - name: Install list of Python packages
+      pip:
+        name:
+          - protobuf==3.20
+          - grpcio
+          - scapy
+          - flask
+        state: latest
+      become: true
+
+    - shell: ls -d /sys/devices/system/node/node* | wc -l
+      register: num_nodes
+
+    - shell: cat /proc/meminfo | grep Hugepagesize
+      register: def_hugepage_size
+
+    - name: Enable huge pages
+      ansible.posix.sysctl:
+        name: vm.nr_hugepages
+        value: {{ num_nodes.stdout|int * 512 }}
+        sysctl_set: yes
+      when: "{{ def_hugepage_size.stdout.find('2048 kB') != -1 }}"
+      become: true
+
+    - shell: mount | grep 'type hugetlbfs'
+      register: hugetlbfs_mounted
+      failed_when: hugetlbfs_mounted.rc == 2
+
+    - name: Mount up /mnt/huge
+      mount:
+        name: /mnt/huge
+        fstype: hugetlbfs
+        src: none
+        state: mounted
+      when: hugetlbfs_mounted.rc == 1
+      become: true

@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Intel Corporation
+
+name: IOSMCN Release Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  docker-build-push-images:
+    runs-on: ubuntu-latest
+
+    env:
+      REGISTRY: ghcr.io
+      DOCKER_REGISTRY: ghcr.io/
+      DOCKER_REPOSITORY: aryan-techphosis/bess/
+      RELEASE_VERSION: 0.0.2
+      STABLE_TAG: 240925
+      IMAGE_NAME: bess_build
+
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Log in to GitHub Container Registry using specific username and password from secrets
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.GHCRUSER }}
+          password: ${{ secrets.GHCRPASS }}
+
+      # Pull the existing image
+      - name: Pull existing image
+        run: |
+          docker pull ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:${{ env.STABLE_TAG }}
+
+      # Tag the image with the new release version
+      - name: Tag the image with the release version
+        run: |
+          docker tag ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:${{ env.STABLE_TAG }} ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:release-${{ env.RELEASE_VERSION }}
+
+      # Push the newly tagged image
+      - name: Push the new image tag
+        run: |
+          docker push ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:release-${{ env.RELEASE_VERSION }}

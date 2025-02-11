@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Intel Corporation
+
+name: CDAC Release Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  docker-build-push-images:
+    runs-on: ubuntu-latest
+
+    env:
+      REGISTRY: docker.io
+      DOCKER_REGISTRY: docker.io/
+      DOCKER_REPOSITORY: cdac5gc/
+      RELEASE_VERSION: 0.0.6
+      STABLE_TAG: 240828
+      IMAGE_NAME: bess_build
+
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Log in to Docker Hub using specific username and password from secrets
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DCKRUSER }}
+          password: ${{ secrets.DCKRPASS }}
+
+      # Pull the existing image from Docker Hub
+      - name: Pull existing image
+        run: |
+          docker pull ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:${{ env.STABLE_TAG }}
+
+      # Tag the image with the new release version
+      - name: Tag the image with the release version
+        run: |
+          docker tag ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:${{ env.STABLE_TAG }} ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:release-${{ env.RELEASE_VERSION }}
+
+      # Push the newly tagged image to Docker Hub
+      - name: Push the new image tag
+        run: |
+          docker push ${{ env.DOCKER_REGISTRY }}${{ env.DOCKER_REPOSITORY }}${{ env.IMAGE_NAME }}:release-${{ env.RELEASE_VERSION }}
